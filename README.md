@@ -1,0 +1,3 @@
+- git commit -m "sth"
+- git push -u origin main
+- git pull origin
