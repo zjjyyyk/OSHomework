@@ -64,7 +64,7 @@ int main(){
     status flag = true;
     while(flag){
         gets(commend);
-        CMD(commend);
+        flag = CMD(commend);
     }
     printf("成功退出操作系统");
     return 0;
