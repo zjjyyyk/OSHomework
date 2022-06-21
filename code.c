@@ -4,39 +4,39 @@
 typedef enum status {false,true} status;
 # define BYTE 8
 
-//////////////////////////////// 数据结构 //////////////////////////
+//////////////////////////////// 鏁版嵁缁撴瀯 //////////////////////////
 typedef struct WORD{
 
 }WORD,*Space;
 
 
-//////////////////////////////// 函数原型 //////////////////////////
-//创建操作系统
+//////////////////////////////// 鍑芥暟鍘熷瀷 //////////////////////////
+//鍒涘缓鎿嶄綔绯荤粺
 FILE* CreateOS();
 
-// 在操作系统中创建内存节点链表
+// 鍦ㄦ搷浣滅郴缁熶腑鍒涘缓鍐呭瓨鑺傜偣閾捐〃
 Space* InitSpaceLink(FILE*);
 
-// 解析用户输入
+// 瑙ｆ瀽鐢ㄦ埛杈撳叆
 status CMD(char*);
 
-// 内存分配算法
+// 鍐呭瓨鍒嗛厤绠楁硶
 Space AllocBoundTag(Space*, int n);
 
-// 内存回收算法
+// 鍐呭瓨鍥炴敹绠楁硶
 Space Recover(Space*, Space);
 
-// 功能函数
+// 鍔熻兘鍑芥暟
 Space FootLoc(Space);
 
-/////////////////////////////// 函数实现 //////////////////////////
+/////////////////////////////// 鍑芥暟瀹炵幇 //////////////////////////
 FILE* CreateOS(){
     FILE* fp = fopen("os.dat","wb+");
     if(fp==NULL){
-        printf("文件创建失败\n");
+        printf("鏂囦欢鍒涘缓澶辫触\n");
         return NULL;
     } else{
-        fseek(fp, 100*100*1024-1,SEEK_SET);
+        fseek(fp, 100*1024*1024-1,SEEK_SET);
         fputc(621,fp);
         fclose(fp);
         return fp;
@@ -45,6 +45,6 @@ FILE* CreateOS(){
 
 int main(){
     CreateOS();
-    printf("创建成功\n");
+    printf("鍒涘缓鎴愬姛\n");
     return 0;
 }
