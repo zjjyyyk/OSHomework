@@ -12,7 +12,7 @@ typedef struct WORD{
 
 //////////////////////////////// 函数原型 //////////////////////////
 //创建操作系统
-FILE CreateOS();
+FILE* CreateOS();
 
 // 在操作系统中创建内存节点链表
 Space* InitSpaceLink(FILE);
