@@ -15,7 +15,7 @@ typedef struct WORD{
 FILE* CreateOS();
 
 // 在操作系统中创建内存节点链表
-Space* InitSpaceLink(FILE);
+Space* InitSpaceLink(FILE*);
 
 // 解析用户输入
 status CMD(char*);
