@@ -29,9 +29,22 @@ Space Recover(Space*, Space);
 // 功能函数
 Space FootLoc(Space);
 
+/////////////////////////////// 函数实现 //////////////////////////
+FILE* CreateOS(){
+    FILE* fp = fopen("os.dat","wb+");
+    if(fp==NULL){
+        printf("文件创建失败\n");
+        return NULL;
+    } else{
+        fseek(fp, 100*1024-1,SEEK_SET);
+        fputc(621,fp);
+        fclose(fp);
+        return fp;
+    }
+}
 
 int main(){
-
-
+    CreateOS();
+    printf("创建成功\n");
     return 0;
 }
