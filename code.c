@@ -55,19 +55,61 @@ Space CreateOS() {
     return head;
 }
 
-status CMD(Space* pav, char* commend, int n)
+status CMD(Space* pav, char* commend)
 {
-    char ABT[] = "AllocBoundTag";
-    char Rc[] = "Recover";
-    if (strcmp(commend, ABT) == 0)
+    //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
+    char Alloc[] = "alloc";
+    char Recov[] = "recover";
+    char ExiT[] = "exit";
+    char cmd[20] = { 0 };//commend 函数命令部分
+    int i = 0;
+    //解析commend命令中的函数命令
+    while (commend[i] != ' ')
+    {
+        cmd[i] = commend[i];
+        i++;
+    }
+    i++;
+    //判断commend命令中的函数命令
+    if (strcmp(cmd, ExiT) == 0)
+        return false;
+    else if (strcmp(cmd, Alloc) == 0)
+    {
+        //解析commend命令中的第一个参数n
+        int n = 0;
+        //将数字字符转化为整型
+        while (commend[i] <= 39 && commend[i] >= 30)
+        {
+            n = 10 * n + commend[i];
+            i++;
+        }
         AllocBoundTag(pav, n);
-    else if (strcmp(commend, Rc) == 0)
-        Recover(Space, Space);
+    }
+    else if (strcmp(cmd, Recov) == 0)
+    {
+        //解析commend命令中的第一个参数n
+        int n = 0;
+        while (commend[i] <= 39 && commend[i] >= 30)
+        {
+            //将数字字符转化为整型
+            n = 10 * n + commend[i] - 30;
+            i++;
+        }
+        //i++;
+        ////解析commend命令中的第二个参数m
+        //int m = 0;
+        //while (commend[i] <= 39 && commend[i] >= 30)
+        //{
+        //    //将数字字符转化为整型
+        //    m = 10 * m + commend[i] - 30;
+        //    i++;
+        //}
+        Recover(pav, n);
+    }
     else
-        printf("\n输入错误，请重新输入:");
+        printf("命令错误，请重新输入：");
     return true;
 }
-
 /* -------------------- main ------------------------*/
 int main() {
     FILE* fp;
