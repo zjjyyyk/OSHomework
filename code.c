@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef enum status {false,true} status;
 # define OS_FILENAME "os.dat"
