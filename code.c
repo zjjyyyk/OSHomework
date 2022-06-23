@@ -4,8 +4,10 @@
 
 typedef enum status {false,true} status;
 # define OS_FILENAME "os.dat"
-# define OS_SIZE 1024*1024*100
-# define OS_BITSIZE 4*1024
+# define OS_BITSIZE 1024*1024*100
+# define UNIT_BITSIZE 16
+# define PIECE_BITSIZE 1024*4
+# define PIECES_NUM 1024*25
 
 //////////////////////////////// 数据结构 //////////////////////////
 typedef struct WORD{
@@ -45,20 +47,36 @@ FILE* CreateOS(){
         return NULL;
     }
     // TODO: 添加链表
+    head* HEAD;
     head* temphead;
     temphead->llink = temphead;
     temphead->rlink = temphead;
     temphead->tag = 0;
-    temphead->size = OS_BITSIZE/sizeof(Space);
+    temphead->size = PIECE_BITSIZE/UNIT_BITSIZE;
+    HEAD = temphead;
     foot* tempfoot;
     tempfoot->uplink = temphead;
     tempfoot->rlink = NULL;
     tempfoot->tag = 0;
-    tempfoot->size = OS_BITSIZE/sizeof(Space);
-    for(int i=0;i<OS_SIZE/OS_BITSIZE;i++){
+    tempfoot->size = PIECE_BITSIZE/UNIT_BITSIZE;
+    for(int i=0;i<PIECES_NUM;i++){
+        printf("%d\n",i);
         head* nextHead;
         nextHead->llink = temphead;
-        nextHead
+        nextHead->rlink = HEAD;
+        nextHead->tag = 0;
+        nextHead->size = PIECE_BITSIZE/UNIT_BITSIZE;
+        temphead->rlink = nextHead;
+        foot* nextFoot;
+        nextFoot->uplink = nextHead;
+        nextFoot->rlink = NULL;
+        nextFoot->tag = 0;
+        nextHead->size = PIECE_BITSIZE/UNIT_BITSIZE;
+        fwrite(temphead,UNIT_BITSIZE,1,fp);
+        fseek(fp,PIECE_BITSIZE-UNIT_BITSIZE,SEEK_CUR);
+        fwrite(tempfoot,UNIT_BITSIZE,1,fp);
+        temphead = nextHead;
+        tempfoot = nextFoot;
     }
     return fp;
 }
@@ -220,8 +238,9 @@ int main(){
         }
     }
     fclose(fp);
-    fp = fopen(OS_FILENAME,'wb+');
+    fp = fopen(OS_FILENAME,"wb+");
     fread((*head),sizeof(WORD),1,fp);
+    printf("欢迎使用zjj与lpl创建的操作系统!\n");
     char * commend;
     status flag = true;
     while(flag){
@@ -229,5 +248,6 @@ int main(){
         flag = CMD(head, commend);
     }
     printf("成功退出操作系统");
+    printf("%d",sizeof(WORD));
     return 0;
 }
