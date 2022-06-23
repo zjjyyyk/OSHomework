@@ -46,6 +46,9 @@ FILE* CreateOS(){
         printf("文件创建失败\n");
         return NULL;
     }
+    fseek(fp,OS_BITSIZE,SEEK_SET);
+    fputc('z',fp);
+    rewind(fp);
     // TODO: 添加链表
     head* HEAD;
     head* temphead = (head*)malloc(sizeof(head));
