@@ -23,7 +23,7 @@ typedef struct WORD{
 
 //////////////////////////////// 函数原型 //////////////////////////
 //创建操作系统和内存节点链表
-FILE* CreateOS();
+void CreateOS();
 
 // 解析用户输入
 status CMD(Space*, char*);
@@ -40,15 +40,16 @@ Space FootLoc(head* p){
 }
 
 /////////////////////////////// 函数实现 //////////////////////////
-FILE* CreateOS(){
+void CreateOS(){
     FILE* fp = fopen(OS_FILENAME,"wb+");
     if(fp==NULL){
         printf("文件创建失败\n");
-        return NULL;
+        return;
     }
-    fseek(fp,OS_BITSIZE,SEEK_SET);
-    fputc('z',fp);
+    fseek(fp,OS_BITSIZE+1,SEEK_SET);
+    fputc(624,fp);
     rewind(fp);
+    
     // TODO: 添加链表
     head* HEAD;
     head* temphead = (head*)malloc(sizeof(head));
@@ -81,7 +82,8 @@ FILE* CreateOS(){
         temphead = nextHead;
         tempfoot = nextFoot;
     }
-    return fp;
+    rewind(fp);
+    fclose(fp);
 }
 
 status CMD(Space* pav, char* commend){
@@ -236,21 +238,19 @@ int main(){
     FILE *fp;
     Space* head;
     if ( (fp = fopen(OS_FILENAME, "r")) == NULL ) {
-        if( (fp = CreateOS()) == NULL){
-            return -1;   
-        }
+        CreateOS();
     }
-    fclose(fp);
-    fp = fopen(OS_FILENAME,"wb+");
+    fp = fopen(OS_FILENAME,"ab+");
     fread((*head),sizeof(WORD),1,fp);
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
     char * commend;
-    status flag = true;
+    status flag = false;
     while(flag){
         gets(commend);
         flag = CMD(head, commend);
     }
     printf("成功退出操作系统");
     printf("%d",sizeof(WORD));
+    fclose(fp);
     return 0;
 }
