@@ -49,6 +49,7 @@ void CreateOS(){
     fseek(fp,OS_BITSIZE+1,SEEK_SET);
     fputc(624,fp);
     rewind(fp);
+    fseek(fp,sizeof(WORD),SEEK_CUR);
     
     // TODO: 添加链表
     head* HEAD;
@@ -63,7 +64,7 @@ void CreateOS(){
     tempfoot->rlink = NULL;
     tempfoot->tag = 0;
     tempfoot->size = PIECE_BITSIZE/UNIT_BITSIZE;
-    for(int i=0;i<PIECES_NUM;i++){
+    for(int i=0;i<PIECES_NUM-1;i++){
         printf("%d\n",i);
         head* nextHead = (head*)malloc(sizeof(head));
         nextHead->llink = temphead;
@@ -82,6 +83,8 @@ void CreateOS(){
         temphead = nextHead;
         tempfoot = nextFoot;
     }
+    rewind(fp);
+    fwrite(HEAD,sizeof(WORD),1,fp);
     rewind(fp);
     fclose(fp);
 }
@@ -242,9 +245,10 @@ int main(){
     }
     fp = fopen(OS_FILENAME,"ab+");
     fread((*head),sizeof(WORD),1,fp);
+    printf("HEAD info:  tag:%d, size:%d\n",(*head)->tag,(*head)->size);
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
     char * commend;
-    status flag = false;
+    status flag = true;
     while(flag){
         gets(commend);
         flag = CMD(head, commend);
