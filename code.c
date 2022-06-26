@@ -50,13 +50,12 @@ void CreateOS(){
     fputc(32,fp);
     rewind(fp);
     // TODO: 添加链表
-    head* HEAD;
     head* temphead = (head*)malloc(sizeof(head));
     temphead->llink = temphead;
     temphead->rlink = temphead;
     temphead->tag = 0;
     temphead->size = PIECE_BITSIZE/UNIT_BITSIZE;
-    HEAD = temphead;
+    head* HEAD = temphead;
     foot* tempfoot = (foot*)malloc(sizeof(foot));
     tempfoot->uplink = temphead;
     tempfoot->rlink = NULL;
@@ -241,25 +240,25 @@ Space Recover(Space pav, int loc){
 /* -------------------- main ------------------------*/ 
 int main(){
     FILE *fp;
-    Space* head;
+    Space head = (Space)malloc(sizeof(WORD));
     if ( (fp = fopen(OS_FILENAME, "rb")) == NULL ) {
         CreateOS();
     }
     fp = fopen(OS_FILENAME,"ab+");
     rewind(fp);
-    fread((*head),sizeof(WORD),1,fp);
+    fread(head,sizeof(WORD),1,fp);
 
-    printf("head->tag:%d, head->size:%d, head real-addr:%#X\n",(*head)->tag,(*head)->size,**head);
+    printf("head->tag:%d, head->size:%d, head real-addr:%#X\n",(head)->tag,(head)->size,head);
     printf("接下来调用*((*head)->rlink)获取head->rlink的实际地址时会卡住：\n");
-    printf("%#X\n",*((*head)->rlink));
+    printf("%#X\n",(head->rlink));
 
     printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
-    char * commend;
+    char * commend = {0};
     status flag = false;
     while(flag){
         gets(commend);
-        flag = CMD(head, commend);
+        flag = CMD(&head, commend);
     }
     printf("成功退出操作系统");
     printf("%d",sizeof(WORD));
