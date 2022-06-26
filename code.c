@@ -47,10 +47,8 @@ void CreateOS(){
         return;
     }
     fseek(fp,OS_BITSIZE+1,SEEK_SET);
-    fputc(624,fp);
+    fputc(32,fp);
     rewind(fp);
-    fseek(fp,sizeof(WORD),SEEK_CUR);
-    
     // TODO: 添加链表
     head* HEAD;
     head* temphead = (head*)malloc(sizeof(head));
@@ -65,7 +63,7 @@ void CreateOS(){
     tempfoot->tag = 0;
     tempfoot->size = PIECE_BITSIZE/UNIT_BITSIZE;
     for(int i=0;i<PIECES_NUM-1;i++){
-        printf("%d\n",i);
+        // printf("%d\n",i);
         head* nextHead = (head*)malloc(sizeof(head));
         nextHead->llink = temphead;
         nextHead->rlink = HEAD;
@@ -77,14 +75,18 @@ void CreateOS(){
         nextFoot->rlink = NULL;
         nextFoot->tag = 0;
         nextHead->size = PIECE_BITSIZE/UNIT_BITSIZE;
+        if(i==0){
+            fwrite(temphead,UNIT_BITSIZE,1,fp);
+            fseek(fp,PIECE_BITSIZE-2*UNIT_BITSIZE,SEEK_CUR);
+            fwrite(tempfoot,UNIT_BITSIZE,1,fp);
+        }
         fwrite(temphead,UNIT_BITSIZE,1,fp);
-        fseek(fp,PIECE_BITSIZE-UNIT_BITSIZE,SEEK_CUR);
+        fseek(fp,PIECE_BITSIZE-2*UNIT_BITSIZE,SEEK_CUR);
         fwrite(tempfoot,UNIT_BITSIZE,1,fp);
+        if(i<10) printf("ftell:%ld\n",ftell(fp));
         temphead = nextHead;
         tempfoot = nextFoot;
     }
-    rewind(fp);
-    fwrite(HEAD,sizeof(WORD),1,fp);
     rewind(fp);
     fclose(fp);
 }
@@ -93,7 +95,7 @@ status CMD(Space* pav, char* commend){
     //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
-    char ExiT[] = "exit";
+    char Exit[] = "exit";
     char cmd[20] = { 0 };//commend 函数命令部分
     int i = 0;
     //解析commend命令中的函数命令
@@ -101,34 +103,34 @@ status CMD(Space* pav, char* commend){
         cmd[i] = commend[i];
         i++;
     }
-    i++;
+    for(;commend[i]==' ';i++);
     //判断commend命令中的函数命令
-    if (strcmp(cmd, ExiT) == 0)
+    if (strcmp(cmd, Exit) == 0)
         return false;
     else if (strcmp(cmd, Alloc) == 0){
-        //解析commend命令中的第一个参数n
         int n = 0;
-        //将数字字符转化为整型
         while (commend[i] <= 39 && commend[i] >= 30){
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        AllocBoundTag(pav, n);
+        Space ret = AllocBoundTag(pav, n);
+        if(ret!=NULL) printf("成功调用函数：AllocBoundTag(pav,%d)\n",n);
+        return true;
     }
     else if (strcmp(cmd, Recov) == 0){
-        //解析commend命令中的第一个参数n
         int n = 0;
         while (commend[i] <= 39 && commend[i] >= 30){
-            //将数字字符转化为整型
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        Recover(*pav, n);
+        Space ret = Recover((*pav), n);
+        if(ret!=NULL) printf("成功调用函数：Recover(*pav,%d)\n",n);
+        return true;
     }
     else {
         printf("命令错误，请重新输入：");
+        return true;
     }       
-    return true;
 }
 
 Space AllocBoundTag(Space *pav,int n){
@@ -240,15 +242,21 @@ Space Recover(Space pav, int loc){
 int main(){
     FILE *fp;
     Space* head;
-    if ( (fp = fopen(OS_FILENAME, "r")) == NULL ) {
+    if ( (fp = fopen(OS_FILENAME, "rb")) == NULL ) {
         CreateOS();
     }
     fp = fopen(OS_FILENAME,"ab+");
+    rewind(fp);
     fread((*head),sizeof(WORD),1,fp);
-    printf("HEAD info:  tag:%d, size:%d\n",(*head)->tag,(*head)->size);
+
+    printf("head->tag:%d, head->size:%d, head real-addr:%#X\n",(*head)->tag,(*head)->size,**head);
+    printf("接下来调用*((*head)->rlink)获取head->rlink的实际地址时会卡住：\n");
+    printf("%#X\n",*((*head)->rlink));
+
+    printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
     char * commend;
-    status flag = true;
+    status flag = false;
     while(flag){
         gets(commend);
         flag = CMD(head, commend);
