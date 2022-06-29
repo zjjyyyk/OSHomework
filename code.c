@@ -5,20 +5,18 @@
 typedef enum status {false,true} status;
 # define OS_FILENAME "os.dat"
 # define OS_BITSIZE 1024*1024*100
-# define UNIT_BITSIZE 16
-# define PIECE_BITSIZE 1024*4
-# define PIECES_NUM 1024*25
+# define PIECE_BITSIZE 1024*512
 
 //////////////////////////////// 数据结构 //////////////////////////
 typedef struct WORD{
     union{
-        struct WORD *llink;//指向直接前驱
-        struct WORD *uplink;//指向结点本身
+        int llink;//指向直接前驱
+        int uplink;//指向结点本身
     };
     int tag;//标记域,0表示为空闲块；1表示为占用块
     int size;//记录内存块的存储大小
-    struct WORD *rlink;//指向直接后继
-}WORD,head,foot,*Space;
+    int rlink;
+}node;
 
 
 //////////////////////////////// 函数原型 //////////////////////////
@@ -26,18 +24,17 @@ typedef struct WORD{
 void CreateOS();
 
 // 解析用户输入
-status CMD(Space*, char*);
+status CMD(int* firstFree, char*);
 
 // 内存分配算法
-Space AllocBoundTag(Space*, int);
+int AllocBoundTag(int firstFree, int);
 
 // 内存回收算法
-Space Recover(Space, int);
+int Recover(int firstFree, int);
 
-// 功能函数
-Space FootLoc(head* p){
-    return p + p->size - 1;
-}
+// 找到第一个空余节点
+int findfirstFreeNode(FILE*);
+
 
 /////////////////////////////// 函数实现 //////////////////////////
 void CreateOS(){
@@ -49,48 +46,27 @@ void CreateOS(){
     fseek(fp,OS_BITSIZE+1,SEEK_SET);
     fputc(32,fp);
     rewind(fp);
-    // TODO: 添加链表
-    head* temphead = (head*)malloc(sizeof(head));
-    temphead->llink = temphead;
-    temphead->rlink = temphead;
-    temphead->tag = 0;
-    temphead->size = PIECE_BITSIZE/UNIT_BITSIZE;
-    head* HEAD = temphead;
-    foot* tempfoot = (foot*)malloc(sizeof(foot));
-    tempfoot->uplink = temphead;
-    tempfoot->rlink = NULL;
-    tempfoot->tag = 0;
-    tempfoot->size = PIECE_BITSIZE/UNIT_BITSIZE;
-    for(int i=0;i<PIECES_NUM-1;i++){
-        // printf("%d\n",i);
-        head* nextHead = (head*)malloc(sizeof(head));
-        nextHead->llink = temphead;
-        nextHead->rlink = HEAD;
-        nextHead->tag = 0;
-        nextHead->size = PIECE_BITSIZE/UNIT_BITSIZE;
-        temphead->rlink = nextHead;
-        foot* nextFoot = (foot*)malloc(sizeof(foot));
-        nextFoot->uplink = nextHead;
-        nextFoot->rlink = NULL;
-        nextFoot->tag = 0;
-        nextHead->size = PIECE_BITSIZE/UNIT_BITSIZE;
-        if(i==0){
-            fwrite(temphead,UNIT_BITSIZE,1,fp);
-            fseek(fp,PIECE_BITSIZE-2*UNIT_BITSIZE,SEEK_CUR);
-            fwrite(tempfoot,UNIT_BITSIZE,1,fp);
-        }
-        fwrite(temphead,UNIT_BITSIZE,1,fp);
-        fseek(fp,PIECE_BITSIZE-2*UNIT_BITSIZE,SEEK_CUR);
-        fwrite(tempfoot,UNIT_BITSIZE,1,fp);
-        if(i<10) printf("ftell:%ld\n",ftell(fp));
-        temphead = nextHead;
-        tempfoot = nextFoot;
+    // 添加链表
+    int i;
+    node temphead,tempfoot;
+    for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
+        temphead.llink = (i-1)%(OS_BITSIZE/PIECE_BITSIZE);
+        temphead.rlink = (i+1)%(OS_BITSIZE/PIECE_BITSIZE);
+        temphead.size = PIECE_BITSIZE;
+        temphead.tag = 0;
+        fwrite(&temphead,sizeof(node),1,fp);
+        fseek(fp,PIECE_BITSIZE-2*sizeof(node),SEEK_CUR);
+        tempfoot.uplink = i;
+        tempfoot.rlink = (i+1)%(OS_BITSIZE/PIECE_BITSIZE);
+        tempfoot.size = PIECE_BITSIZE;
+        tempfoot.tag = 0;
+        fwrite(&tempfoot,sizeof(node),1,fp);
     }
     rewind(fp);
     fclose(fp);
 }
 
-status CMD(Space* pav, char* commend){
+status CMD(int *pav, char* commend){
     //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
@@ -112,8 +88,8 @@ status CMD(Space* pav, char* commend){
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        Space ret = AllocBoundTag(pav, n);
-        if(ret!=NULL) printf("成功调用函数：AllocBoundTag(pav,%d)\n",n);
+        int ret = AllocBoundTag(pav, n);
+        if(ret!=-100) printf("成功调用函数：AllocBoundTag(pav,%d)\n",n);
         return true;
     }
     else if (strcmp(cmd, Recov) == 0){
@@ -122,8 +98,8 @@ status CMD(Space* pav, char* commend){
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        Space ret = Recover((*pav), n);
-        if(ret!=NULL) printf("成功调用函数：Recover(*pav,%d)\n",n);
+        int ret = Recover(pav, n);
+        if(ret!=-200) printf("成功调用函数：Recover(*pav,%d)\n",n);
         return true;
     }
     else {
@@ -132,7 +108,8 @@ status CMD(Space* pav, char* commend){
     }       
 }
 
-Space AllocBoundTag(Space *pav,int n){
+/////////////////////   1   //////////////////
+int AllocBoundTag(int pav,int n){
     Space p,f;
     int e=10;//设定常亮 e 的值
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
@@ -173,7 +150,9 @@ Space AllocBoundTag(Space *pav,int n){
     }
 }
 
-Space Recover(Space pav, int loc){
+
+///////////////////////   2   /////////////////////////
+int Recover(int pav, int loc){
     Space p = pav;
     //设定p指针指向的为用户释放的空闲块
     for(int i=0;i<loc;i++){
@@ -237,31 +216,34 @@ Space Recover(Space pav, int loc){
 }
 
 
+//////////////////////////   3   /////////////////////////
+int findFirstFreeNode(FILE* fp){
+
+}
+
+
 /* -------------------- main ------------------------*/ 
 int main(){
     FILE *fp;
-    Space head = (Space)malloc(sizeof(WORD));
     if ( (fp = fopen(OS_FILENAME, "rb")) == NULL ) {
         CreateOS();
     }
     fp = fopen(OS_FILENAME,"ab+");
     rewind(fp);
-    fread(head,sizeof(WORD),1,fp);
-
-    printf("head->tag:%d, head->size:%d, head real-addr:%#X\n",(head)->tag,(head)->size,head);
-    printf("接下来调用*((*head)->rlink)获取head->rlink的实际地址时会卡住：\n");
-    printf("%#X\n",(head->rlink));
+    int pav = findFirstFreeNode(fp);
 
     printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
-    char * commend = {0};
+    char * commend;
     status flag = false;
     while(flag){
         gets(commend);
-        flag = CMD(&head, commend);
+        flag = CMD(&pav, commend);
     }
     printf("成功退出操作系统");
-    printf("%d",sizeof(WORD));
     fclose(fp);
     return 0;
 }
+
+
+
