@@ -54,7 +54,7 @@ void CreateOS(){
         temphead.llink = (i-1)%(OS_BITSIZE/PIECE_BITSIZE);
         temphead.uplink = i;
         temphead.rlink = (i+1)%(OS_BITSIZE/PIECE_BITSIZE);
-        temphead.size = 1;
+        temphead.size = PIECE_BITSIZE;
         temphead.tag = 0;
         fwrite(&temphead,sizeof(node),1,fp);
         fseek(fp,PIECE_BITSIZE-sizeof(node),SEEK_CUR);
@@ -117,41 +117,23 @@ node* getNode(FILE* fp,int n){
 int AllocBoundTag(int* pav,int n, FILE* fp){
     int p,f;
     node *nd = getNode(fp,*pav);
-    int e=10;//设定常亮 e 的值
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
     for (p=(*pav); nd&&nd->size<n&&nd->rlink!=(*pav); p=nd->rlink, nd = getNode(fp,p))
     //跳出循环，首先排除p为空和p指向的空闲块容量小于 n 的情况
     if (!nd ||nd->size<n) {
-        return NULL;
+        return -100;
     }else{
-        //指针f指向p空闲块的foot域
-        f=FootLoc(p);
         //调整pav指针的位置，为下次分配做准备
         (*pav)=nd->rlink;
-        //如果该空闲块的存储大小比 n 大，比 n+e 小，负责第一种情况，将 p 指向的空闲块全部分配给用户
-        if (p->size-n <= e) {
-            if ((*pav)==p) {
-                pav=NULL;
-            }
-            else{
-                //全部分配用户，即从可利用空间表中删除 p 空闲块
-                (*pav)->llink=p->llink;
-                p->llink->rlink=(*pav);
-            }
-            //同时调整head域和foot域中的tag值
-            p->tag=f->tag=1;
+        if ((*pav)==p) {
+            *pav = -1;
         }
-        //否则，从p空闲块中拿出 大小为 n 的连续空间分配给用户，同时更新p剩余存储块中的信息。
         else{
-            //更改分配块foot域的信息
-            f->tag=1;
-            p->size-=n;
-            //f指针指向剩余空闲块 p 的底部
-            f=FootLoc(p);
-            f->tag=0;   f->uplink=p;
-            p=f+1;//p指向的是分配给用户的块的head域，也就是该块的首地址
-            p->tag=1;   p->size=n;
+            //全部分配用户，即从可利用空间表中删除 p 空闲块
+            getNode(fp,*pav)->llink = nd->llink;
+            getNode(fp,nd->llink)->rlink = *pav;
         }
+        nd->tag = 1;
         return p;
     }
 }
@@ -244,7 +226,7 @@ int main(){
     status flag = false;
     while(flag){
         gets(commend);
-        flag = CMD(&pav, commend);
+        flag = CMD(fp, &pav, commend);
     }
     printf("成功退出操作系统");
     fclose(fp);
