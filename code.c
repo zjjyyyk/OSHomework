@@ -9,10 +9,8 @@ typedef enum status {false,true} status;
 
 //////////////////////////////// 数据结构 //////////////////////////
 typedef struct WORD{
-    union{
-        int llink;//指向直接前驱
-        int uplink;//指向结点本身
-    };
+    int llink;
+    int uplink;
     int tag;//标记域,0表示为空闲块；1表示为占用块
     int size;//记录内存块的存储大小
     int rlink;
@@ -24,13 +22,16 @@ typedef struct WORD{
 void CreateOS();
 
 // 解析用户输入
-status CMD(int* firstFree, char*);
+status CMD(FILE*, int* firstFree, char*);
 
 // 内存分配算法
-int AllocBoundTag(int firstFree, int);
+int AllocBoundTag(int* firstFree, int, FILE*);
 
 // 内存回收算法
-int Recover(int firstFree, int);
+int Recover(int* firstFree, int, FILE*);
+
+// 根据序号找节点
+node* getNode(FILE*, int);
 
 // 找到第一个空余节点
 int findfirstFreeNode(FILE*);
@@ -48,25 +49,21 @@ void CreateOS(){
     rewind(fp);
     // 添加链表
     int i;
-    node temphead,tempfoot;
+    node temphead;
     for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
         temphead.llink = (i-1)%(OS_BITSIZE/PIECE_BITSIZE);
+        temphead.uplink = i;
         temphead.rlink = (i+1)%(OS_BITSIZE/PIECE_BITSIZE);
-        temphead.size = PIECE_BITSIZE;
+        temphead.size = 1;
         temphead.tag = 0;
         fwrite(&temphead,sizeof(node),1,fp);
-        fseek(fp,PIECE_BITSIZE-2*sizeof(node),SEEK_CUR);
-        tempfoot.uplink = i;
-        tempfoot.rlink = (i+1)%(OS_BITSIZE/PIECE_BITSIZE);
-        tempfoot.size = PIECE_BITSIZE;
-        tempfoot.tag = 0;
-        fwrite(&tempfoot,sizeof(node),1,fp);
+        fseek(fp,PIECE_BITSIZE-sizeof(node),SEEK_CUR);
     }
     rewind(fp);
     fclose(fp);
 }
 
-status CMD(int *pav, char* commend){
+status CMD(FILE* fp, int *pav, char* commend){
     //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
@@ -88,7 +85,7 @@ status CMD(int *pav, char* commend){
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        int ret = AllocBoundTag(pav, n);
+        int ret = AllocBoundTag(pav, n, fp);
         if(ret!=-100) printf("成功调用函数：AllocBoundTag(pav,%d)\n",n);
         return true;
     }
@@ -98,7 +95,7 @@ status CMD(int *pav, char* commend){
             n = 10 * n + commend[i] - 30;
             i++;
         }
-        int ret = Recover(pav, n);
+        int ret = Recover(pav, n, fp);
         if(ret!=-200) printf("成功调用函数：Recover(*pav,%d)\n",n);
         return true;
     }
@@ -108,20 +105,29 @@ status CMD(int *pav, char* commend){
     }       
 }
 
+node* getNode(FILE* fp,int n){
+    node *nd = NULL;
+    fseek(fp,n*PIECE_BITSIZE,SEEK_SET);
+    fread(nd,sizeof(node),1,fp);
+    return nd;
+}
+
+
 /////////////////////   1   //////////////////
-int AllocBoundTag(int pav,int n){
-    Space p,f;
+int AllocBoundTag(int* pav,int n, FILE* fp){
+    int p,f;
+    node *nd = getNode(fp,*pav);
     int e=10;//设定常亮 e 的值
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
-    for (p=(*pav); p&&p->size<n&&p->rlink!=(*pav); p=p->rlink);
+    for (p=(*pav); nd&&nd->size<n&&nd->rlink!=(*pav); p=nd->rlink, nd = getNode(fp,p))
     //跳出循环，首先排除p为空和p指向的空闲块容量小于 n 的情况
-    if (!p ||p->size<n) {
+    if (!nd ||nd->size<n) {
         return NULL;
     }else{
         //指针f指向p空闲块的foot域
         f=FootLoc(p);
         //调整pav指针的位置，为下次分配做准备
-        (*pav)=p->rlink;
+        (*pav)=nd->rlink;
         //如果该空闲块的存储大小比 n 大，比 n+e 小，负责第一种情况，将 p 指向的空闲块全部分配给用户
         if (p->size-n <= e) {
             if ((*pav)==p) {
@@ -152,7 +158,7 @@ int AllocBoundTag(int pav,int n){
 
 
 ///////////////////////   2   /////////////////////////
-int Recover(int pav, int loc){
+int Recover(int* pav, int loc, FILE* fp){
     Space p = pav;
     //设定p指针指向的为用户释放的空闲块
     for(int i=0;i<loc;i++){
