@@ -142,12 +142,9 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
 
 ///////////////////////   2   /////////////////////////
 int Recover(int* pav, int loc, FILE* fp) {
-    Space p = pav;
-    //设定p指针指向的为用户释放的空闲块
-    for (int i = 0;i < loc;i++) {
-        p = p->rlink;
-    }
-    p->tag = 0;
+    int p = loc;
+    node* nd = getNode(fp,p);
+    nd->tag = 0;
     if ((p + p->size)->tag == 1 && (p - 1)->uplink->tag == 1) {
         //f指针指向p空闲块的foot域
         Space f = FootLoc(p);
@@ -210,12 +207,13 @@ int Recover(int* pav, int loc, FILE* fp) {
 int findFirstFreeNode(FILE* fp) {
     int i = 0;
     node temphead;
-    for (i = 0;i < 200;i++) {
+    rewind(fp);
+    for (i = 0;i < OS_BITSIZE/PIECE_BITSIZE;i++) {
         fread(&temphead, sizeof(node), 1, fp);
         if (temphead.tag == 0)
             return i;
         else
-            fssek(fp, PIECE_BITSIZE - sizeof(node), SEEK_CUR);
+            fseek(fp, PIECE_BITSIZE - sizeof(node), SEEK_CUR);
     }
     return -1;
 }
