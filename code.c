@@ -33,6 +33,9 @@ int Recover(int* firstFree, int, FILE*);
 // 根据序号找节点
 node* getNode(FILE*, int);
 
+// 将指针数据写入文件
+void writeNode(FILE*, int, node*);
+
 // 找到第一个空余节点
 int findfirstFreeNode(FILE*);
 
@@ -126,9 +129,16 @@ node* getNode(FILE* fp, int n) {
     return nd;
 }
 
+void writeNode(FILE*fp, int n, node* nd){
+    fseek(fp,n * PIECE_BITSIZE,SEEK_SET);
+    fwrite(nd,sizeof(node),1,fp);
+    rewind(fp);
+}
+
 
 int AllocBoundTag(int* pav, int n, FILE* fp) {
     int p, f;
+    int _pav = *pav;
     node* nd = getNode(fp, *pav);
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
     for (p = (*pav); nd && nd->size < n && nd->rlink != (*pav); p = nd->rlink, nd = getNode(fp, p))
@@ -149,6 +159,7 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
             getNode(fp, nd->llink)->rlink = *pav;
         }
         nd->tag = 1;
+        writeNode(fp,_pav,nd);
         rewind(fp);
         return p;
     }
@@ -165,12 +176,18 @@ int Recover(int* pav, int loc, FILE* fp) {
     }
     else {
         //否则，在p空闲块插入到pav指向的空闲块的左侧
-        int q = getNode(fp,*pav)->llink;
+        int _pav = *pav;
+        node* nd_pav = getNode(fp,*pav);
+        int q = nd_pav->llink;
+        node* nd_q = getNode(fp,q);
         nd->rlink = *pav;
         nd->llink = q;
-        getNode(fp,q)->rlink = getNode(fp,*pav)->llink = p;
+        nd_q->rlink = nd_pav->llink = p;
         *pav = p;
+        writeNode(fp,_pav,nd_pav);
+        writeNode(fp,q,nd_q);
     }
+    writeNode(fp,p,nd);
     rewind(fp);
     return p;
 }
@@ -195,7 +212,6 @@ void displayNodeTag(FILE* fp){
     int i;
     node temp;
     rewind(fp);
-    printf("%d\n",OS_BITSIZE/PIECE_BITSIZE);
     for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
         fread(&temp,sizeof(node),1,fp);
         printf("i:%d, tag:%d\n",i,temp.tag);
