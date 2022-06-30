@@ -4,8 +4,8 @@
 
 typedef enum status { false, true } status;
 # define OS_FILENAME "os.dat"
-# define OS_BITSIZE 1024*1024*100
-# define PIECE_BITSIZE 1024*512
+# define OS_BITSIZE (1024*1024*100)
+# define PIECE_BITSIZE (1024*512)
 
 //////////////////////////////// 数据结构 //////////////////////////
 typedef struct WORD {
@@ -71,6 +71,7 @@ status CMD(FILE* fp, int* pav, char* commend) {
     char Alloc[] = "alloc";
     char Recov[] = "recover";
     char Exit[] = "exit";
+    char Display[] = "display";
     char cmd[20] = { 0 };//commend 函数命令部分
     int i = 0;
     //解析commend命令中的函数命令
@@ -105,8 +106,11 @@ status CMD(FILE* fp, int* pav, char* commend) {
         if (ret != -200) printf("成功调用函数：Recover(*pav,%d)\n", n);
         return true;
     }
+    else if (strcmp(cmd, Display) == 0){
+        displayNodeTag(fp);
+    }
     else {
-        printf("命令错误，请重新输入：");
+        printf("Wrong commend, please input again:\n");
         return true;
     }
 }
@@ -188,6 +192,7 @@ void displayNodeTag(FILE* fp){
     int i;
     node temp;
     rewind(fp);
+    printf("%d\n",OS_BITSIZE/PIECE_BITSIZE);
     for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
         fread(&temp,sizeof(node),1,fp);
         printf("i:%d, tag:%d\n",i,temp.tag);
@@ -206,7 +211,6 @@ int main() {
     }
     fp = fopen(OS_FILENAME, "ab+");
     rewind(fp);
-    printf("yes\n");
     int pav = findFirstFreeNode(fp);
     printf("pav:%d\n",pav);
 
@@ -215,6 +219,7 @@ int main() {
     char commend[20];
     status flag = true;
     while (flag) {
+        scanf("%*[^\n]"); scanf("%*c");
         gets(commend);
         flag = CMD(fp, &pav, commend);
     }
