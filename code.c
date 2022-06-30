@@ -75,17 +75,19 @@ status CMD(FILE* fp, int* pav, char* commend) {
     char cmd[20] = { 0 };//commend 函数命令部分
     int i = 0;
     //解析commend命令中的函数命令
-    while (commend[i] != ' ') {
+    int tempflag = 1;
+    while (commend[i] != ' ' && tempflag) {
+        if(commend[i]==0) tempflag = 0;
         cmd[i] = commend[i];
         i++;
     }
-    for (;commend[i] == ' ';i++);
     //判断commend命令中的函数命令
     if (strcmp(cmd, Exit) == 0){
         printf("EXIT OUT\n");
         return false;
     }
     else if (strcmp(cmd, Alloc) == 0) {
+        for (;commend[i] == ' ';i++);
         int n = 0;
         while (commend[i] <= 57 && commend[i] >= 48) {
             n = 10 * n + commend[i] - 48;
@@ -96,6 +98,7 @@ status CMD(FILE* fp, int* pav, char* commend) {
         return true;
     }
     else if (strcmp(cmd, Recov) == 0) {
+        for (;commend[i] == ' ';i++);
         int n = 0;
         while (commend[i] <= 57 && commend[i] >= 48) {
             printf("find num\n");
@@ -216,10 +219,9 @@ int main() {
 
     printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
-    char commend[20];
+    char commend[20] = {0};
     status flag = true;
     while (flag) {
-        scanf("%*[^\n]"); scanf("%*c");
         gets(commend);
         flag = CMD(fp, &pav, commend);
     }
