@@ -80,12 +80,14 @@ status CMD(FILE* fp, int* pav, char* commend) {
     }
     for (;commend[i] == ' ';i++);
     //判断commend命令中的函数命令
-    if (strcmp(cmd, Exit) == 0)
+    if (strcmp(cmd, Exit) == 0){
+        printf("EXIT OUT\n");
         return false;
+    }
     else if (strcmp(cmd, Alloc) == 0) {
         int n = 0;
-        while (commend[i] <= 39 && commend[i] >= 30) {
-            n = 10 * n + commend[i] - 30;
+        while (commend[i] <= 57 && commend[i] >= 48) {
+            n = 10 * n + commend[i] - 48;
             i++;
         }
         int ret = AllocBoundTag(pav, n, fp);
@@ -94,8 +96,9 @@ status CMD(FILE* fp, int* pav, char* commend) {
     }
     else if (strcmp(cmd, Recov) == 0) {
         int n = 0;
-        while (commend[i] <= 39 && commend[i] >= 30) {
-            n = 10 * n + commend[i] - 30;
+        while (commend[i] <= 57 && commend[i] >= 48) {
+            printf("find num\n");
+            n = 10 * n + commend[i] - 48;
             i++;
         }
         int ret = Recover(pav, n, fp);
@@ -112,6 +115,7 @@ node* getNode(FILE* fp, int n) {
     node* nd = NULL;
     fseek(fp, n * PIECE_BITSIZE, SEEK_SET);
     fread(nd, sizeof(node), 1, fp);
+    rewind(fp);
     return nd;
 }
 
@@ -121,24 +125,26 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
     node* nd = getNode(fp, *pav);
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
     for (p = (*pav); nd && nd->size < n && nd->rlink != (*pav); p = nd->rlink, nd = getNode(fp, p))
-        //跳出循环，首先排除p为空和p指向的空闲块容量小于 n 的情况
-        if (!nd || nd->size < n) {
-            return -100;
+    //跳出循环，首先排除p为空和p指向的空闲块容量小于 n 的情况
+    if (!nd || nd->size < n) {
+        rewind(fp);
+        return -100;
+    }
+    else {
+        //调整pav指针的位置，为下次分配做准备
+        (*pav) = nd->rlink;
+        if ((*pav) == p) {
+            *pav = -1;
         }
         else {
-            //调整pav指针的位置，为下次分配做准备
-            (*pav) = nd->rlink;
-            if ((*pav) == p) {
-                *pav = -1;
-            }
-            else {
-                //全部分配用户，即从可利用空间表中删除 p 空闲块
-                getNode(fp, *pav)->llink = nd->llink;
-                getNode(fp, nd->llink)->rlink = *pav;
-            }
-            nd->tag = 1;
-            return p;
+            //全部分配用户，即从可利用空间表中删除 p 空闲块
+            getNode(fp, *pav)->llink = nd->llink;
+            getNode(fp, nd->llink)->rlink = *pav;
         }
+        nd->tag = 1;
+        rewind(fp);
+        return p;
+    }
 }
 
 
@@ -158,6 +164,7 @@ int Recover(int* pav, int loc, FILE* fp) {
         getNode(fp,q)->rlink = getNode(fp,*pav)->llink = p;
         *pav = p;
     }
+    rewind(fp);
     return p;
 }
 
@@ -173,6 +180,7 @@ int findFirstFreeNode(FILE* fp) {
         else
             fseek(fp, PIECE_BITSIZE - sizeof(node), SEEK_CUR);
     }
+    rewind(fp);
     return -1;
 }
 
@@ -186,6 +194,7 @@ void displayNodeTag(FILE* fp){
         fseek(fp,PIECE_BITSIZE-sizeof(node),SEEK_CUR);
     }
     printf("display over.\n");
+    rewind(fp);
 }
 
 
@@ -197,11 +206,13 @@ int main() {
     }
     fp = fopen(OS_FILENAME, "ab+");
     rewind(fp);
+    printf("yes\n");
     int pav = findFirstFreeNode(fp);
+    printf("pav:%d\n",pav);
 
     printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
-    char* commend;
+    char commend[20];
     status flag = true;
     while (flag) {
         gets(commend);
