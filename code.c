@@ -36,6 +36,9 @@ node* getNode(FILE*, int);
 // 找到第一个空余节点
 int findfirstFreeNode(FILE*);
 
+// 遍历文件，显示状态
+void displayNodeTag(FILE*);
+
 
 /////////////////////////////// 函数实现 //////////////////////////
 void CreateOS() {
@@ -113,7 +116,6 @@ node* getNode(FILE* fp, int n) {
 }
 
 
-/////////////////////   1   //////////////////
 int AllocBoundTag(int* pav, int n, FILE* fp) {
     int p, f;
     node* nd = getNode(fp, *pav);
@@ -140,19 +142,18 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
 }
 
 
-///////////////////////   2   /////////////////////////
 int Recover(int* pav, int loc, FILE* fp) {
     int p = loc;
     node* nd = getNode(fp,p);
     nd->tag = 0;
     //如果pav指针不存在，证明可利用空间表为空，此时设置p为头指针，并重新建立双向循环链表
     if (*pav == -1) {
-        pav = nd->llink = nd->rlink = p;
+        *pav = nd->llink = nd->rlink = p;
     }
     else {
         //否则，在p空闲块插入到pav指向的空闲块的左侧
         int q = getNode(fp,*pav)->llink;
-        nd->rlink = pav;
+        nd->rlink = *pav;
         nd->llink = q;
         getNode(fp,q)->rlink = getNode(fp,*pav)->llink = p;
         *pav = p;
@@ -161,7 +162,6 @@ int Recover(int* pav, int loc, FILE* fp) {
 }
 
 
-//////////////////////////   3   /////////////////////////
 int findFirstFreeNode(FILE* fp) {
     int i = 0;
     node temphead;
@@ -174,6 +174,18 @@ int findFirstFreeNode(FILE* fp) {
             fseek(fp, PIECE_BITSIZE - sizeof(node), SEEK_CUR);
     }
     return -1;
+}
+
+void displayNodeTag(FILE* fp){
+    int i;
+    node temp;
+    rewind(fp);
+    for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
+        fread(&temp,sizeof(node),1,fp);
+        printf("i:%d, tag:%d\n",i,temp.tag);
+        fseek(fp,PIECE_BITSIZE-sizeof(node),SEEK_CUR);
+    }
+    printf("display over.\n");
 }
 
 
@@ -190,7 +202,7 @@ int main() {
     printf("-------\n");
     printf("欢迎使用zjj与lpl创建的操作系统!\n");
     char* commend;
-    status flag = false;
+    status flag = true;
     while (flag) {
         gets(commend);
         flag = CMD(fp, &pav, commend);
