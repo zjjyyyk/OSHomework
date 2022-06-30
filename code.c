@@ -145,61 +145,19 @@ int Recover(int* pav, int loc, FILE* fp) {
     int p = loc;
     node* nd = getNode(fp,p);
     nd->tag = 0;
-    if ((p + p->size)->tag == 1 && (p - 1)->uplink->tag == 1) {
-        //f指针指向p空闲块的foot域
-        Space f = FootLoc(p);
-        f->uplink = p;
-        f->tag = 0;
-        //如果pav指针不存在，证明可利用空间表为空，此时设置p为头指针，并重新建立双向循环链表
-        if (!pav) {
-            pav = p->llink = p->rlink = p;
-        }
-        else {
-            //否则，在p空闲块插入到pav指向的空闲块的左侧
-            Space q = pav->llink;
-            p->rlink = pav;
-            p->llink = q;
-            q->rlink = pav->llink = p;
-            pav = p;
-        }
+    //如果pav指针不存在，证明可利用空间表为空，此时设置p为头指针，并重新建立双向循环链表
+    if (*pav == -1) {
+        pav = nd->llink = nd->rlink = p;
     }
-    else if ((p + p->size)->tag == 1 && (p - 1)->uplink->tag == 0) {
-        //常量 n 表示当前空闲块的存储大小
-        int n = p->size;
-        Space s = (p - 1)->uplink;//p-1 为当前块的左侧块的foot域，foot域中的uplink指向的就是左侧块的首地址，s指针代表的是当前块的左侧存储块
-        s->size += n;//设置左侧存储块的存储容量
-        Space f = p + n - 1;//f指针指向的是空闲块 p 的foot域
-        f->uplink = s;//这是foot域的uplink指针重新指向合并后的存储空间的首地址
-        f->tag = 0;//设置foot域的tag标记为空闲块
+    else {
+        //否则，在p空闲块插入到pav指向的空闲块的左侧
+        int q = getNode(fp,*pav)->llink;
+        nd->rlink = pav;
+        nd->llink = q;
+        getNode(fp,q)->rlink = getNode(fp,*pav)->llink = p;
+        *pav = p;
     }
-    else if ((p + p->size)->tag == 0 && (p - 1)->uplink->tag == 1) {
-        Space t = p + p->size;//t指针指向右侧空闲块的首地址
-        p->tag = 0;//初始化head域的tag值为0
-        //找到t右侧空闲块的前驱结点和后继结点，用当前释放的空闲块替换右侧空闲块
-        Space q = t->llink;
-        p->llink = q; q->rlink = p;
-        Space q1 = t->rlink;
-        p->rlink = q1; q1->llink = p;
-        //更新释放块的size的值
-        p->size += t->size;
-        //更改合并后的foot域的uplink指针的指向
-        Space f = FootLoc(t);
-        f->uplink = p;
-    }
-    else if ((p + p->size)->tag == 0 && (p - 1)->uplink->tag == 0) {
-        int n = p->size;
-        Space s = (p - 1)->uplink;//找到释放内存块物理位置相邻的低地址的空闲块
-        Space t = p + p->size;//找到物理位置相邻的高地址处的空闲块
-        s->size += n + t->size;//更新左侧空闲块的size的值
-        //从可利用空间表中摘除右侧空闲块
-        Space q = t->llink;
-        Space q1 = t->rlink;
-        q->rlink = q1;
-        q1->llink = q;
-        //更新合并后的空闲块的uplink指针的指向
-        Space f = FootLoc(t);
-        f->uplink = s;
-    }
+    return p;
 }
 
 
