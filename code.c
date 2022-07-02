@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 typedef enum status { false, true } status;
 # define OS_FILENAME "os.dat"
@@ -45,7 +46,7 @@ void displayNodeTag(FILE*);
 
 /////////////////////////////// 函数实现 //////////////////////////
 void CreateOS() {
-    FILE* fp = fopen(OS_FILENAME, "wb+");
+    FILE* fp = fopen(OS_FILENAME, "wb");
     if (fp == NULL) {
         printf("文件创建失败\n");
         return;
@@ -55,14 +56,15 @@ void CreateOS() {
     rewind(fp);
     // 添加链表
     int i;
-    node temphead;
+    node* temphead = (node*)malloc(sizeof(node));
     for (i = 0;i < OS_BITSIZE / PIECE_BITSIZE;i++) {
-        temphead.llink = (i - 1) % (OS_BITSIZE / PIECE_BITSIZE);
-        temphead.uplink = i;
-        temphead.rlink = (i + 1) % (OS_BITSIZE / PIECE_BITSIZE);
-        temphead.size = PIECE_BITSIZE;
-        temphead.tag = 0;
-        fwrite(&temphead, sizeof(node), 1, fp);
+        printf("i=%d\n",i);
+        temphead->llink = (i - 1) % (OS_BITSIZE / PIECE_BITSIZE);
+        temphead->uplink = i;
+        temphead->rlink = (i + 1) % (OS_BITSIZE / PIECE_BITSIZE);
+        temphead->size = PIECE_BITSIZE;
+        temphead->tag = 0;
+        fwrite(temphead, sizeof(node), 1, fp);
         fseek(fp, PIECE_BITSIZE - sizeof(node), SEEK_CUR);
     }
     rewind(fp);
@@ -75,6 +77,7 @@ status CMD(FILE* fp, int* pav, char* commend) {
     char Recov[] = "recover";
     char Exit[] = "exit";
     char Display[] = "display";
+    char Pav[] = "pav";
     char cmd[20] = { 0 };//commend 函数命令部分
     int i = 0;
     //解析commend命令中的函数命令
@@ -90,30 +93,46 @@ status CMD(FILE* fp, int* pav, char* commend) {
         return false;
     }
     else if (strcmp(cmd, Alloc) == 0) {
-        for (;commend[i] == ' ';i++);
+        for (; isblank(commend[i]);i++);
         int n = 0;
-        while (commend[i] <= 57 && commend[i] >= 48) {
+        while (isdigit(commend[i])) {
             n = 10 * n + commend[i] - 48;
             i++;
         }
         int ret = AllocBoundTag(pav, n, fp);
-        if (ret != -100) printf("成功调用函数：AllocBoundTag(pav,%d)\n", n);
+        if (ret != -100) printf("Successfully called: AllocBoundTag(pav,%d), ret = %d\n", n,ret);
         return true;
     }
     else if (strcmp(cmd, Recov) == 0) {
-        for (;commend[i] == ' ';i++);
-        int n = 0;
-        while (commend[i] <= 57 && commend[i] >= 48) {
-            printf("find num\n");
-            n = 10 * n + commend[i] - 48;
-            i++;
+        for (; isblank(commend[i]);i++);
+        if(commend[i] == 'a' && commend[i+1] == 'l' && commend[i+2] == 'l'){
+            int i;
+            for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
+                i = Recover(pav,i,fp);
+            }
+            printf("Recovered all\n");
+            return true;
         }
-        int ret = Recover(pav, n, fp);
-        if (ret != -200) printf("成功调用函数：Recover(*pav,%d)\n", n);
+        int n = 0;
+        while( isdigit(commend[i]) || isblank(commend[i])){
+            for (; isblank(commend[i]);i++);
+            n = 0;
+            while (isdigit(commend[i])) {
+                n = 10 * n + commend[i] - 48;
+                i++;
+            }
+            int ret = Recover(pav, n, fp);
+            if (ret != -200) printf("Successfully called: Recover(*pav,%d)\n", n);
+        }      
         return true;
     }
     else if (strcmp(cmd, Display) == 0){
         displayNodeTag(fp);
+        return true;
+    }
+    else if (strcmp(cmd, Pav) == 0){
+        printf("Now pav = %d\n",*pav);
+        return true;
     }
     else {
         printf("Wrong commend, please input again:\n");
@@ -122,17 +141,19 @@ status CMD(FILE* fp, int* pav, char* commend) {
 }
 
 node* getNode(FILE* fp, int n) {
-    node* nd = NULL;
+    node* nd = (node*)malloc(sizeof(node));
     fseek(fp, n * PIECE_BITSIZE, SEEK_SET);
     fread(nd, sizeof(node), 1, fp);
     rewind(fp);
     return nd;
 }
 
-void writeNode(FILE*fp, int n, node* nd){
+
+void writeNode(FILE* fp, int n, node* nd){
     fseek(fp,n * PIECE_BITSIZE,SEEK_SET);
-    fwrite(nd,sizeof(node),1,fp);
+    int ret = fwrite(nd,sizeof(node),1,fp);
     rewind(fp);
+    fflush(fp);
 }
 
 
@@ -141,10 +162,13 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
     int _pav = *pav;
     node* nd = getNode(fp, *pav);
     //如果在遍历过程，当前空闲块的在存储容量比用户申请空间 n 值小，在该空闲块有右孩子的情况下直接跳过
-    for (p = (*pav); nd && nd->size < n && nd->rlink != (*pav); p = nd->rlink, nd = getNode(fp, p))
+    for (p = _pav; nd && nd->size < n && nd->rlink != (*pav); p = nd->rlink, nd = getNode(fp, p));
     //跳出循环，首先排除p为空和p指向的空闲块容量小于 n 的情况
     if (!nd || nd->size < n) {
         rewind(fp);
+        if(!nd) printf("No free space to alloc\n");
+        if(nd->size < n) printf("Too big to alloc: only %ld, need %ld\n",nd->size, n);
+        printf("alloc failed\n");
         return -100;
     }
     else {
@@ -160,6 +184,7 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
         }
         nd->tag = 1;
         writeNode(fp,_pav,nd);
+        fflush(fp);
         rewind(fp);
         return p;
     }
@@ -169,6 +194,7 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
 int Recover(int* pav, int loc, FILE* fp) {
     int p = loc;
     node* nd = getNode(fp,p);
+    if(nd->tag == 0) return p;
     nd->tag = 0;
     //如果pav指针不存在，证明可利用空间表为空，此时设置p为头指针，并重新建立双向循环链表
     if (*pav == -1) {
@@ -208,16 +234,18 @@ int findFirstFreeNode(FILE* fp) {
     return -1;
 }
 
+
 void displayNodeTag(FILE* fp){
+    fflush(fp);
     int i;
-    node temp;
+    node* temp = (node*)malloc(sizeof(node));
     rewind(fp);
     for(i=0;i<OS_BITSIZE/PIECE_BITSIZE;i++){
-        fread(&temp,sizeof(node),1,fp);
-        printf("i:%d, tag:%d\n",i,temp.tag);
+        fread(temp,sizeof(node),1,fp);
+        printf("%d ",temp->tag);
         fseek(fp,PIECE_BITSIZE-sizeof(node),SEEK_CUR);
     }
-    printf("display over.\n");
+    printf("\ndisplay over.\n");
     rewind(fp);
 }
 
@@ -227,14 +255,15 @@ int main() {
     FILE* fp;
     if ((fp = fopen(OS_FILENAME, "rb")) == NULL) {
         CreateOS();
+        printf("OS created!\n");
     }
-    fp = fopen(OS_FILENAME, "ab+");
+    fp = fopen(OS_FILENAME, "rwb+");
     rewind(fp);
     int pav = findFirstFreeNode(fp);
     printf("pav:%d\n",pav);
 
     printf("-------\n");
-    printf("欢迎使用zjj与lpl创建的操作系统!\n");
+    printf("Welcome to our OS!\n");
     char commend[20] = {0};
     status flag = true;
     while (flag) {
@@ -243,5 +272,23 @@ int main() {
     }
     printf("成功退出操作系统");
     fclose(fp);
+
+    // fp = fopen("os.dat","rwb+");
+    // node* temp = (node*)malloc(sizeof(node));
+    // temp->tag = 0;
+    // temp->llink = 21;
+    // temp->rlink = 10;
+    // temp->uplink = 19;
+    // temp->size = 58888;
+    // rewind(fp);
+    // fwrite(temp,sizeof(node),1,fp);
+    // fclose(fp);
+    // fp = fopen("os.dat","rwb+");
+    // node* ptemp = (node*)malloc(sizeof(node));
+    // rewind(fp);
+    // fread(ptemp,sizeof(node),1,fp);
+    // printf("%#X\n",fp);
+    // printf("%d,%d\n",ptemp->llink,ptemp->rlink);
+
     return 0;
 }
