@@ -4,6 +4,10 @@
 #include <ctype.h>
 #include "os.h"
 
+# define OS_FILENAME "os.dat"
+# define OS_BITSIZE (1024*1024*100)
+# define PIECE_BITSIZE (1024*512)
+
 typedef enum status {false,true} status;
 
 status CMD(FILE* fp, int* pav, char* commend) {
