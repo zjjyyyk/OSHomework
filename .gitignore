@@ -3,3 +3,4 @@
 *.dat
 quickstart/
 build/
+test.c
