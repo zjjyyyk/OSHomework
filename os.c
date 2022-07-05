@@ -4,11 +4,6 @@
 #include <ctype.h>
 #include "os.h"
 
-# define OS_FILENAME "os.dat"
-# define OS_BITSIZE (1024*1024*100)
-# define PIECE_BITSIZE (1024*512)
-
-
 /////////////////////////////// 函数实现 //////////////////////////
 void CreateOS() {
     FILE* fp = fopen(OS_FILENAME, "wb");
@@ -24,9 +19,9 @@ void CreateOS() {
     node* temphead = (node*)malloc(sizeof(node));
     for (i = 0;i < OS_BITSIZE / PIECE_BITSIZE;i++) {
         printf("i=%d\n",i);
-        temphead->llink = (i - 1) % (OS_BITSIZE / PIECE_BITSIZE);
+        temphead->llink = i != 0 ? i - 1 : OS_BITSIZE/PIECE_BITSIZE-1;
         temphead->uplink = i;
-        temphead->rlink = (i + 1) % (OS_BITSIZE / PIECE_BITSIZE);
+        temphead->rlink = i != OS_BITSIZE/PIECE_BITSIZE-1  ? i + 1 : 0;
         temphead->size = PIECE_BITSIZE;
         temphead->tag = 0;
         fwrite(temphead, sizeof(node), 1, fp);
@@ -75,9 +70,13 @@ int AllocBoundTag(int* pav, int n, FILE* fp) {
             *pav = -1;
         }
         else {
+            node* nd2 = getNode(fp, *pav);
+            node* nd3 =  getNode(fp, nd->llink);
             //全部分配用户，即从可利用空间表中删除 p 空闲块
-            getNode(fp, *pav)->llink = nd->llink;
-            getNode(fp, nd->llink)->rlink = *pav;
+            nd2->llink = nd->llink;
+            nd3->rlink = *pav;
+            writeNode(fp,*pav,nd2);
+            writeNode(fp,nd->llink,nd3);
         }
         nd->tag = 1;
         writeNode(fp,_pav,nd);

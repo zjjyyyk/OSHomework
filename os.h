@@ -1,7 +1,9 @@
 #ifndef _OS_H_
 #define _OS_H_
-#include <stdio.h>
-#include <stdlib.h>
+
+# define OS_FILENAME "os.dat"
+# define OS_BITSIZE (1024*1024*100)
+# define PIECE_BITSIZE (1024*512)
 
 //////////////////////////////// 数据结构 //////////////////////////
 typedef struct WORD {
@@ -11,6 +13,7 @@ typedef struct WORD {
     int size;//记录内存块的存储大小
     int rlink;
 }node;
+typedef enum status{false,true} status; 
 
 //////////////////////////////// 函数原型 //////////////////////////
 

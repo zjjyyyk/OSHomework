@@ -3,23 +3,28 @@
 #include <string.h>
 #include <ctype.h>
 #include "os.h"
+#include "array.h"
 
 # define OS_FILENAME "os.dat"
 # define OS_BITSIZE (1024*1024*100)
 # define PIECE_BITSIZE (1024*512)
 
-typedef enum status {false,true} status;
 
-status CMD(FILE* fp, int* pav, char* commend) {
+status CMD(FILE* fp, int* pav, char* commend, int* flag, ArrayInfo* tempArrayInfo) {
     //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
     char Exit[] = "exit";
     char Display[] = "display";
     char Pav[] = "pav";
-    char cmd[20] = { 0 };//commend 函数命令部分
+    char Check[] = "check";
+
+    char Array[] = "array";
+
+    char cmd[128] = { 0 };//commend 函数命令部分
     int i = 0;
     //解析commend命令中的函数命令
+    for (; isblank(commend[i]);i++);
     int tempflag = 1;
     while (commend[i] != ' ' && tempflag) {
         if(commend[i]==0) tempflag = 0;
@@ -73,12 +78,35 @@ status CMD(FILE* fp, int* pav, char* commend) {
         printf("Now pav = %d\n",*pav);
         return true;
     }
+    else if (strcmp(cmd, Check) == 0){
+        for (; isblank(commend[i]);i++);
+        int n = 0;
+        while (isdigit(commend[i])) {
+            n = 10 * n + commend[i] - 48;
+            i++;
+        }
+        node* nd = getNode(fp,n);
+        if(n>=0&&n<OS_BITSIZE/PIECE_BITSIZE) printf("Node %d: [tag:%d uplink:%d llink:%d rlink:%d]\n",n,nd->tag,nd->uplink,nd->llink,nd->rlink);
+        else printf("There is no node %d\n",n);
+        return true;
+    }
+    else if (strcmp(cmd,Array) == 0){
+        for (; isblank(commend[i]);i++);
+        if(*flag != 5){
+            tempArrayInfo->loc = -50;
+            tempArrayInfo->count = 0;
+            *flag = 5;
+            printf("Now flag = %d\n",*flag);
+        }
+        char arrayCommend[128] = {0};
+        strncpy(arrayCommend,commend+i,strlen(commend)-i);
+        return cmd_Array(fp,pav,arrayCommend,tempArrayInfo);
+    }
     else {
         printf("Wrong commend, please input again:\n");
         return true;
     }
 }
-
 
 
 /* -------------------- main ------------------------*/
@@ -96,13 +124,14 @@ int main() {
     printf("-------\n");
     printf("Welcome to our OS!\n");
     char commend[20] = {0};
-    status flag = true;
-    while (flag) {
+    status notExit = true;
+    int flag = 1;
+    ArrayInfo* tempArrayInfo = (ArrayInfo*)malloc(sizeof(ArrayInfo)); tempArrayInfo->loc = -50; tempArrayInfo->count = 0;
+    while (notExit) {
         gets(commend);
-        flag = CMD(fp, &pav, commend);
+        notExit = CMD(fp, &pav, commend, &flag,tempArrayInfo);
     }
-    printf("成功退出操作系统");
+    printf("Safely exited");
     fclose(fp);
-
     return 0;
 }
