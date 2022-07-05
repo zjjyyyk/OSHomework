@@ -117,15 +117,15 @@ ArrayInfo setArray(FILE* fp, ArrayInfo info, int elem, int index){
 
 status cmd_Array(FILE* fp, int* pav, char* commend, ArrayInfo* tempArrayInfo){
     printf("arrayCommend:%s END, pav : %d\n",commend,*pav);
-    char init[] = "init";  // ´´½¨
-    char add[] = "add";  // Ôö
-    char remove[] = "remove";  // É¾ 
-    char find[] = "find";  // ²é
-    char set[] = "set";  // ¸Ä
-    char display[] = "display";  // ¿´
-    char cmd[20] = { 0 };//commend º¯ÊıÃüÁî²¿·Ö
+    char init[] = "init";  // åˆ›å»º
+    char add[] = "add";  // å¢
+    char remove[] = "remove";  // åˆ  
+    char find[] = "find";  // æŸ¥
+    char set[] = "set";  // æ”¹
+    char display[] = "display";  // çœ‹
+    char cmd[20] = { 0 };//commend å‡½æ•°å‘½ä»¤éƒ¨åˆ†
     int i = 0;
-    //½âÎöcommendÃüÁîÖĞµÄº¯ÊıÃüÁî
+    //è§£æcommendå‘½ä»¤ä¸­çš„å‡½æ•°å‘½ä»¤
     int tempflag = 1;
     while (commend[i] != ' ' && tempflag) {
         if(commend[i]==0) tempflag = 0;
