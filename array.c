@@ -176,6 +176,7 @@ status cmd_Array(FILE* fp, int* pav, char* commend, ArrayInfo* tempArrayInfo){
         return true;
     }
     else if(strcmp(cmd,find)==0){
+        for (; isblank(commend[i]);i++);
         ElemType elem = 0;
         while (isdigit(commend[i])) {
             elem = 10 * elem + commend[i] - 48;
