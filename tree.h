@@ -1,9 +1,9 @@
 #ifndef __TREE_H__
 #define __TREE_H__
 
-typedef ElemType char; //结点内数据的类型
+typedef int ElemType;
 
-typedef TreeInfo int;
+typedef int TreeInfo;
 
 typedef struct BinTreeNode
 {
@@ -11,5 +11,7 @@ typedef struct BinTreeNode
 	int leftChild; 
 	int rightChild;
 }BinTreeNode;
+
+extern status cmd_Tree(FILE* fp, int* pav, char* commend, TreeInfo* tempRoot);
 
 #endif

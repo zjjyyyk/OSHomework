@@ -6,10 +6,11 @@
 #include "list.h"
 #include "array.h"
 #include "stack.h"
+#include "tree.h"
 
 
-status CMD(FILE* fp, int* pav, char* commend, int* flag, ListInfo* tempphead, ArrayInfo* tempArrayInfo, StackInfo* tempStackInfo) {
-    //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
+status CMD(FILE* fp, int* pav, char* commend, int* flag, ListInfo* tempphead, ArrayInfo* tempArrayInfo, StackInfo* tempStackInfo, TreeInfo* tempRoot) {
+    //命令格式：函数命令（alloc recover�?+空格+数字+数字，例�? alloc 8 或�? recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
     char Exit[] = "exit";
@@ -20,10 +21,11 @@ status CMD(FILE* fp, int* pav, char* commend, int* flag, ListInfo* tempphead, Ar
     char List[] = "list";
     char Array[] = "array";
     char Stack[] = "stack";
+    char Tree[] = "tree";
 
     char cmd[128] = { 0 };//commend 函数命令部分
     int i = 0;
-    //解析commend命令中的函数命令
+    //解析commend命令�?的函数命�?
     for (; isblank(commend[i]);i++);
     int tempflag = 1;
     while (commend[i] != ' ' && tempflag) {
@@ -31,7 +33,7 @@ status CMD(FILE* fp, int* pav, char* commend, int* flag, ListInfo* tempphead, Ar
         cmd[i] = commend[i];
         i++;
     }
-    //判断commend命令中的函数命令
+    //判断commend命令�?的函数命�?
     if (strcmp(cmd, Exit) == 0){
         printf("EXIT OUT\n");
         return false;
@@ -125,6 +127,17 @@ status CMD(FILE* fp, int* pav, char* commend, int* flag, ListInfo* tempphead, Ar
         strncpy(StackCommend,commend+i,strlen(commend)-i);
         return cmd_Stack(fp,pav,StackCommend,tempStackInfo);
     }
+    else if (strcmp(cmd,Tree) == 0){
+        for (; isblank(commend[i]);i++);
+        if(*flag != 8){
+            *tempRoot = -80;
+            *flag = 8;
+            printf("Now flag = %d\n",*flag);
+        }
+        char TreeCommend[128] = {0};
+        strncpy(TreeCommend,commend+i,strlen(commend)-i);
+        return cmd_Tree(fp,pav,TreeCommend,tempRoot);
+    }
     else {
         printf("Wrong commend, please input again:\n");
         return true;
@@ -152,9 +165,10 @@ int main() {
     ListInfo* tempphead = (ListInfo*)malloc(sizeof(ListInfo)); *tempphead = -40;
     ArrayInfo* tempArrayInfo = (ArrayInfo*)malloc(sizeof(ArrayInfo)); tempArrayInfo->loc = -50; tempArrayInfo->count = 0;
     StackInfo* tempStackInfo = (StackInfo*)malloc(sizeof(StackInfo)); tempStackInfo->loc = -70; tempStackInfo->top = -1;
+    TreeInfo* tempRoot = (TreeInfo*)malloc(sizeof(TreeInfo)); *tempRoot = -80;
     while (notExit) {
         gets(commend);
-        notExit = CMD(fp, &pav, commend, &flag, tempphead, tempArrayInfo, tempStackInfo);
+        notExit = CMD(fp, &pav, commend, &flag, tempphead, tempArrayInfo, tempStackInfo, tempRoot);
     }
     printf("Safely exited");
     fclose(fp);
