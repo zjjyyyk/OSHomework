@@ -4,13 +4,10 @@
 #include <ctype.h>
 #include "os.h"
 #include "array.h"
-
-# define OS_FILENAME "os.dat"
-# define OS_BITSIZE (1024*1024*100)
-# define PIECE_BITSIZE (1024*512)
+#include "stack.h"
 
 
-status CMD(FILE* fp, int* pav, char* commend, int* flag, ArrayInfo* tempArrayInfo) {
+status CMD(FILE* fp, int* pav, char* commend, int* flag, ArrayInfo* tempArrayInfo, StackInfo* tempStackInfo) {
     //命令格式：函数命令（alloc recover）+空格+数字+数字，例如 alloc 8 或者 recover 8 9
     char Alloc[] = "alloc";
     char Recov[] = "recover";
@@ -20,6 +17,7 @@ status CMD(FILE* fp, int* pav, char* commend, int* flag, ArrayInfo* tempArrayInf
     char Check[] = "check";
 
     char Array[] = "array";
+    char Stack[] = "stack";
 
     char cmd[128] = { 0 };//commend 函数命令部分
     int i = 0;
@@ -102,6 +100,18 @@ status CMD(FILE* fp, int* pav, char* commend, int* flag, ArrayInfo* tempArrayInf
         strncpy(arrayCommend,commend+i,strlen(commend)-i);
         return cmd_Array(fp,pav,arrayCommend,tempArrayInfo);
     }
+    else if (strcmp(cmd,Stack) == 0){
+        for (; isblank(commend[i]);i++);
+        if(*flag != 7){
+            tempStackInfo->loc = -70;
+            tempStackInfo->top = -1;
+            *flag = 7;
+            printf("Now flag = %d\n",*flag);
+        }
+        char StackCommend[128] = {0};
+        strncpy(StackCommend,commend+i,strlen(commend)-i);
+        return cmd_Stack(fp,pav,StackCommend,tempStackInfo);
+    }
     else {
         printf("Wrong commend, please input again:\n");
         return true;
@@ -127,9 +137,10 @@ int main() {
     status notExit = true;
     int flag = 1;
     ArrayInfo* tempArrayInfo = (ArrayInfo*)malloc(sizeof(ArrayInfo)); tempArrayInfo->loc = -50; tempArrayInfo->count = 0;
+    StackInfo* tempStackInfo = (StackInfo*)malloc(sizeof(StackInfo)); tempStackInfo->loc = -70; tempStackInfo->top = -1;
     while (notExit) {
         gets(commend);
-        notExit = CMD(fp, &pav, commend, &flag,tempArrayInfo);
+        notExit = CMD(fp, &pav, commend, &flag, tempArrayInfo, tempStackInfo);
     }
     printf("Safely exited");
     fclose(fp);

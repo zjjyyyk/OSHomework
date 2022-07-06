@@ -7,10 +7,7 @@
 
 
 ArrayInfo initArray(FILE* fp, int* pav, ElemType* elems, int count){
-    printf("Initiating Array......\n");
-    printf("pav : %d\n",*pav);
     int loc = AllocBoundTag(pav, count * sizeof(ElemType), fp);
-    printf("loc : %d\n",loc);
     fseek(fp,loc * PIECE_BITSIZE + sizeof(node), SEEK_SET);
     fwrite(elems,sizeof(ElemType),count,fp);
     rewind(fp);
@@ -50,7 +47,7 @@ ArrayInfo addArray(FILE* fp, ArrayInfo info, ElemType elem, int index){
     for(i=info.count;i>=index;i--){
         data[i+1] = data[i];
     }
-    data[i] = elem;
+    data[i+1] = elem;
     fseek(fp,info.loc * PIECE_BITSIZE + sizeof(node), SEEK_SET);
     fwrite(data,sizeof(ElemType),info.count+1,fp);
     rewind(fp);
@@ -118,14 +115,14 @@ ArrayInfo setArray(FILE* fp, ArrayInfo info, int elem, int index){
 status cmd_Array(FILE* fp, int* pav, char* commend, ArrayInfo* tempArrayInfo){
     printf("arrayCommend:%s END, pav : %d\n",commend,*pav);
     char init[] = "init";  // 创建
-    char add[] = "add";  // 增
-    char remove[] = "remove";  // 删 
-    char find[] = "find";  // 查
-    char set[] = "set";  // 改
-    char display[] = "display";  // 看
+    char add[] = "add";  // �?
+    char remove[] = "remove";  // �? 
+    char find[] = "find";  // �?
+    char set[] = "set";  // �?
+    char display[] = "display";  // �?
     char cmd[20] = { 0 };//commend 函数命令部分
     int i = 0;
-    //解析commend命令中的函数命令
+    //解析commend命令�?的函数命�?
     int tempflag = 1;
     while (commend[i] != ' ' && tempflag) {
         if(commend[i]==0) tempflag = 0;
