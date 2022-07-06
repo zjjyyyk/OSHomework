@@ -72,7 +72,7 @@ status cmd_Stack(FILE* fp, int* pav, char* commend, StackInfo* tempStackInfo){
     char push[] = "push";  
     char pop[] = "pop";  
     char display[] = "display"; 
-    char cmd[20] = { 0 };
+    char cmd[128] = { 0 };
     int i = 0;
 
     int tempflag = 1;

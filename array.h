@@ -10,5 +10,4 @@ typedef struct ArrayInfo {
 
 extern status cmd_Array(FILE* fp, int* pav, char* commend, ArrayInfo* tempArrayInfo);
 
-
 #endif

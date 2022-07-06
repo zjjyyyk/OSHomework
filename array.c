@@ -114,15 +114,15 @@ ArrayInfo setArray(FILE* fp, ArrayInfo info, int elem, int index){
 
 status cmd_Array(FILE* fp, int* pav, char* commend, ArrayInfo* tempArrayInfo){
     printf("arrayCommend:%s END, pav : %d\n",commend,*pav);
-    char init[] = "init";  // 创建
-    char add[] = "add";  // �?
-    char remove[] = "remove";  // �? 
-    char find[] = "find";  // �?
-    char set[] = "set";  // �?
-    char display[] = "display";  // �?
-    char cmd[20] = { 0 };//commend 函数命令部分
+    char init[] = "init";  
+    char add[] = "add";  
+    char remove[] = "remove";  
+    char find[] = "find"; 
+    char set[] = "set";  
+    char display[] = "display"; 
+    char cmd[128] = { 0 };
     int i = 0;
-    //解析commend命令�?的函数命�?
+    
     int tempflag = 1;
     while (commend[i] != ' ' && tempflag) {
         if(commend[i]==0) tempflag = 0;
